@@ -81,17 +81,50 @@ export default function TeacherDashboard() {
   const handleDeleteQuiz = async (quizId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce quiz ?')) {
       try {
+        const token = localStorage.getItem('token');
+        console.log('Delete Request Details:', {
+          url: `http://localhost:8080/api/quizzes/${quizId}`,
+          method: 'DELETE',
+          token: token ? `${token.substring(0, 20)}...` : 'No token',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
         const response = await fetch(`http://localhost:8080/api/quizzes/${quizId}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
+
+        console.log('Delete Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+
         if (response.ok) {
+          const responseText = await response.text();
+          console.log('Delete Success Response:', responseText);
           setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
+        } else {
+          const errorText = await response.text();
+          console.error('Delete Error Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText,
+            headers: Object.fromEntries(response.headers.entries())
+          });
         }
       } catch (error) {
-        console.error('Error deleting quiz:', error);
+        console.error('Error deleting quiz:', {
+          message: error.message,
+          stack: error.stack
+        });
       }
     }
   };
@@ -342,7 +375,7 @@ export default function TeacherDashboard() {
                       <b>Questions</b><br />{quiz.questions.length}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Participants</b><br />{quiz.participants?.length || 0}
+                      <b>Score max</b><br />{quiz.questions.reduce((total, q) => total + (q.points || 0), 0)} points
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
@@ -359,9 +392,7 @@ export default function TeacherDashboard() {
                   >
                     Modifier
                   </Button>
-                  <Button startIcon={<ShareIcon />} variant="outlined" size="small">
-                    Partager
-                  </Button>
+                 
                   <Button startIcon={<BarChartIcon />} variant="outlined" size="small">
                     Stats
                   </Button>

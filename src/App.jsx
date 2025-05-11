@@ -2,6 +2,7 @@ import React from 'react';
 import { Typography, Container, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+
 export default function App() {
   const navigate = useNavigate();
 
