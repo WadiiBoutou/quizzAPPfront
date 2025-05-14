@@ -57,13 +57,12 @@ export default function QuizTakingModal({ quiz, onClose }) {
   const handlePageChange = (_, value) => setCurrent(value - 1);
 
   return (
-    <Dialog open fullWidth maxWidth="md" onClose={onClose}>
+    <Dialog open={true} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {quiz.title}
-        <Box sx={{ float: 'right', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography>
-            {String(Math.floor(timer / 60)).padStart(2, '0')}:
-            {String(timer % 60).padStart(2, '0')}
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">{quiz.title}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Temps restant: {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
           </Typography>
         </Box>
       </DialogTitle>
@@ -77,21 +76,33 @@ export default function QuizTakingModal({ quiz, onClose }) {
           </Typography>
           <LinearProgress variant="determinate" value={((current + 1) / quiz.questions.length) * 100} />
         </Box>
-        <Box>
-          <Typography variant="h6">{quiz.questions[current].text}</Typography>
-          <Box display="flex" flexDirection="column" gap={1}>
-            {quiz.questions[current].answers.map(ans => (
-              <FormControlLabel
-                key={ans.id}
-                control={
-                  <Checkbox
-                    checked={answers[quiz.questions[current].id].includes(ans.id)}
-                    onChange={() => handleCheck(quiz.questions[current].id, ans.id)}
-                  />
-                }
-                label={ans.text}
-              />
-            ))}
+        <Box sx={{ mt: 2 }}>
+          <Box key={current} sx={{ mb: 4 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Question {current + 1}
+              </Typography>
+              <Typography variant="body2" color="primary" fontWeight="bold">
+                {quiz.questions[current].points} points
+              </Typography>
+            </Box>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {quiz.questions[current].text}
+            </Typography>
+            <Box display="flex" flexDirection="column" gap={1}>
+              {quiz.questions[current].answers.map(ans => (
+                <FormControlLabel
+                  key={ans.id}
+                  control={
+                    <Checkbox
+                      checked={answers[quiz.questions[current].id].includes(ans.id)}
+                      onChange={() => handleCheck(quiz.questions[current].id, ans.id)}
+                    />
+                  }
+                  label={ans.text}
+                />
+              ))}
+            </Box>
           </Box>
         </Box>
         <Box mt={2} display="flex" justifyContent="center">

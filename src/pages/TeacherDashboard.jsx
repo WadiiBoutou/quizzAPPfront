@@ -9,31 +9,102 @@ import ShareIcon from '@mui/icons-material/Share';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
-const emptyAnswer = { text: '', correct: false };
-const emptyQuestion = { 
+const createEmptyAnswer = () => ({ text: '', correct: false });
+
+const createEmptyQuestion = () => ({ 
   text: '', 
   points: 0,
-  answers: [ 
-    { ...emptyAnswer }, 
-    { ...emptyAnswer }, 
-    { ...emptyAnswer }, 
-    { ...emptyAnswer } 
-  ] 
-};
+  answers: Array(4).fill(null).map(() => createEmptyAnswer())
+});
 
 const tabLabels = ['Tous', 'Actifs', 'Brouillons', 'Archivés'];
+
+// Move AIGenerationDialog outside of TeacherDashboard
+const AIGenerationDialog = ({ 
+  open, 
+  onClose, 
+  aiForm, 
+  setAiForm, 
+  onGenerate 
+}) => (
+  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <DialogTitle>Générer un Quiz avec l'IA</DialogTitle>
+    <DialogContent>
+      <Box component="form" sx={{ mt: 2 }}>
+        <TextField
+          label="Sujet du quiz"
+          fullWidth
+          margin="normal"
+          value={aiForm.prompt}
+          onChange={(e) => setAiForm({ ...aiForm, prompt: e.target.value })}
+          placeholder="Ex: Mathématiques de base, Histoire de France..."
+          required
+        />
+        <TextField
+          label="Nombre de questions"
+          type="number"
+          fullWidth
+          margin="normal"
+          value={aiForm.numberOfQuestions}
+          onChange={(e) => setAiForm({ ...aiForm, numberOfQuestions: parseInt(e.target.value) })}
+          InputProps={{ inputProps: { min: 1, max: 20 } }}
+          required
+        />
+        <TextField
+          label="Limite de temps (minutes)"
+          type="number"
+          fullWidth
+          margin="normal"
+          value={aiForm.timeLimit}
+          onChange={(e) => setAiForm({ ...aiForm, timeLimit: parseInt(e.target.value) })}
+          InputProps={{ inputProps: { min: 1 } }}
+          required
+        />
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Type de réponses</InputLabel>
+          <Select
+            value={aiForm.singleCorrectAnswer}
+            onChange={(e) => setAiForm({ ...aiForm, singleCorrectAnswer: e.target.value })}
+            label="Type de réponses"
+          >
+            <MenuItem value={true}>Une seule réponse correcte</MenuItem>
+            <MenuItem value={false}>Plusieurs réponses possibles</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose}>Annuler</Button>
+      <Button 
+        onClick={onGenerate} 
+        variant="contained" 
+        disabled={!aiForm.prompt}
+      >
+        Générer
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
 
 export default function TeacherDashboard() {
   const [tab, setTab] = useState(0);
   const [open, setOpen] = useState(false);
+  const [openAIDialog, setOpenAIDialog] = useState(false);
   const [quizzes, setQuizzes] = useState([]);
   const [editingQuiz, setEditingQuiz] = useState(null);
+  const [aiForm, setAiForm] = useState({
+    prompt: '',
+    numberOfQuestions: 5,
+    timeLimit: 30,
+    singleCorrectAnswer: true
+  });
   const [quizForm, setQuizForm] = useState({
     title: '',
     description: '',
     timeLimit: 30,
-    questions: [{ ...emptyQuestion }]
+    questions: [createEmptyQuestion()]
   });
 
   useEffect(() => {
@@ -247,7 +318,7 @@ export default function TeacherDashboard() {
       title: '',
       description: '',
       timeLimit: 30,
-      questions: [{ ...emptyQuestion }]
+      questions: [createEmptyQuestion()]
     });
   };
 
@@ -292,7 +363,7 @@ export default function TeacherDashboard() {
   const addQuestion = () => {
     setQuizForm({
       ...quizForm,
-      questions: [...quizForm.questions, { ...emptyQuestion }]
+      questions: [...quizForm.questions, createEmptyQuestion()]
     });
   };
 
@@ -306,7 +377,7 @@ export default function TeacherDashboard() {
   const addAnswer = (qIdx) => {
     const questions = quizForm.questions.map((q, i) => {
       if (i !== qIdx) return q;
-      return { ...q, answers: [...q.answers, { ...emptyAnswer }] };
+      return { ...q, answers: [...q.answers, createEmptyAnswer()] };
     });
     setQuizForm({ ...quizForm, questions });
   };
@@ -319,6 +390,62 @@ export default function TeacherDashboard() {
       return { ...q, answers: q.answers.filter((_, j) => j !== aIdx) };
     });
     setQuizForm({ ...quizForm, questions });
+  };
+
+  const handleAIGenerate = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        alert('Please login first');
+        return;
+      }
+
+      // Log the request details for debugging
+      console.log('Sending request with token:', token.substring(0, 20) + '...');
+      console.log('Request payload:', aiForm);
+
+      const response = await fetch('http://localhost:8080/api/quizzes/generate-ai-quiz', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(aiForm)
+      });
+
+      // Log the response status
+      console.log('Response status:', response.status);
+
+      if (response.ok) {
+        const generatedQuiz = await response.json();
+        console.log('Generated quiz:', generatedQuiz);
+        setQuizForm({
+          title: generatedQuiz.title,
+          description: generatedQuiz.description,
+          timeLimit: generatedQuiz.timeLimit,
+          questions: generatedQuiz.questions
+        });
+        setOpenAIDialog(false);
+        setOpen(true);
+      } else {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            alert(`Failed to generate quiz: ${errorData.message}`);
+          } else {
+            alert('Failed to generate quiz. Please try again.');
+          }
+        } catch (e) {
+          alert('Failed to generate quiz. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      alert('Failed to generate quiz. Please try again.');
+    }
   };
 
   // Add error boundary
@@ -336,15 +463,26 @@ export default function TeacherDashboard() {
             Créez et gérez vos quiz
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddCircleOutlineIcon />}
-          sx={{ borderRadius: 2, fontWeight: 600 }}
-          onClick={() => setOpen(true)}
-        >
-          Nouveau Quiz
-        </Button>
+        <Box>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<SmartToyIcon />}
+            sx={{ borderRadius: 2, fontWeight: 600, mr: 2 }}
+            onClick={() => setOpenAIDialog(true)}
+          >
+            Générer avec l'IA
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddCircleOutlineIcon />}
+            sx={{ borderRadius: 2, fontWeight: 600 }}
+            onClick={() => setOpen(true)}
+          >
+            Nouveau Quiz
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ bgcolor: '#fafbfc', borderRadius: 2, p: 2, mb: 3 }}>
@@ -525,6 +663,14 @@ export default function TeacherDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AIGenerationDialog 
+        open={openAIDialog}
+        onClose={() => setOpenAIDialog(false)}
+        aiForm={aiForm}
+        setAiForm={setAiForm}
+        onGenerate={handleAIGenerate}
+      />
     </Container>
   );
 } 

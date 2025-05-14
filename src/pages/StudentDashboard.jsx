@@ -3,8 +3,10 @@ import {
   Container, Typography, Box, Tabs, Tab, Grid, Card, CardContent, Button, Divider
 } from '@mui/material';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useNavigate } from 'react-router-dom';
 import QuizTakingModal from './QuizTakingModal';
+import QuizPerformanceModal from './QuizPerformanceModal';
 
 const tabLabels = ['Quiz Disponibles', 'Quiz Complétés'];
 
@@ -15,6 +17,8 @@ export default function StudentDashboard() {
   const [openQuizModal, setOpenQuizModal] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState(null);
   const [completedQuizzes, setCompletedQuizzes] = useState([]);
+  const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
+  const [selectedQuizPerformance, setSelectedQuizPerformance] = useState(null);
   
 
   useEffect(() => {
@@ -69,6 +73,52 @@ export default function StudentDashboard() {
   const handleStartQuiz = (quiz) => {
     setActiveQuiz(quiz);
     setOpenQuizModal(true);
+  };
+
+  const handleViewPerformance = async (quizId) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching performance for quiz:', quizId);
+      console.log('Token available:', !!token);
+      console.log('Token value:', token);
+
+      const url = `http://localhost:8080/api/quizzes/${quizId}/performance`;
+      console.log('Request URL:', url);
+
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      };
+      console.log('Request headers:', headers);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response status text:', response.statusText);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Response data:', data);
+        setSelectedQuizPerformance(data);
+        setOpenPerformanceModal(true);
+      } else {
+        const errorText = await response.text();
+        console.error('Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleViewPerformance:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
   };
 
   return (
@@ -141,12 +191,23 @@ export default function StudentDashboard() {
             <CardContent>
               <Typography variant="h6" fontWeight={700}>{quiz.quizTitle}</Typography>
               <Typography variant="body2" color="text.secondary" mb={1}>
-                Score: <b>{quiz.score}</b>
+                Score: <b>{quiz.score} / {quiz.maxScore}</b>
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Terminé le : {quiz.completionTime ? new Date(quiz.completionTime).toLocaleString() : '-'}
               </Typography>
             </CardContent>
+            <Divider />
+            <Box sx={{ p: 2 }}>
+              <Button
+                startIcon={<BarChartIcon />}
+                variant="outlined"
+                fullWidth
+                onClick={() => handleViewPerformance(quiz.quizId)}
+              >
+                Voir les détails
+              </Button>
+            </Box>
           </Card>
         </Grid>
       ))
@@ -159,6 +220,13 @@ export default function StudentDashboard() {
         <QuizTakingModal
           quiz={activeQuiz}
           onClose={() => { setOpenQuizModal(false); setActiveQuiz(null); }}
+        />
+      )}
+      {openPerformanceModal && selectedQuizPerformance && (
+        <QuizPerformanceModal
+          open={openPerformanceModal}
+          onClose={() => { setOpenPerformanceModal(false); setSelectedQuizPerformance(null); }}
+          quizPerformance={selectedQuizPerformance}
         />
       )}
     </Container>
