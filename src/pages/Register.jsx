@@ -1,15 +1,49 @@
 import React, { useState } from 'react';
-import { TextField, Button, Container, Typography, Box, Alert, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
+import { 
+  TextField, 
+  Button, 
+  Container, 
+  Typography, 
+  Box, 
+  Alert, 
+  Paper,
+  InputAdornment,
+  IconButton,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+import { 
+  Person as PersonIcon,
+  Lock as LockIcon,
+  Email as EmailIcon,
+  Badge as BadgeIcon,
+  School as SchoolIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', username: '', password: '', role: ''
+    firstName: '', 
+    lastName: '', 
+    email: '', 
+    username: '', 
+    password: '', 
+    role: ''
   });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,48 +63,313 @@ export default function Register() {
       await axios.post('http://localhost:8080/api/auth/register', formData);
       setSuccess('Registration successful!');
       setError('');
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       console.error('Registration error:', err);
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error('Error response:', err.response.data);
         setError(err.response.data.message || 'Registration failed. Please check your input.');
       } else if (err.request) {
-        // The request was made but no response was received
-        console.error('No response received:', err.request);
         setError('Unable to connect to the server. Please check if the backend is running.');
       } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error setting up request:', err.message);
         setError('An unexpected error occurred. Please try again.');
       }
     }
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box mt={5}>
-        <Typography variant="h5" align="center" gutterBottom>Register</Typography>
-        {success && <Alert severity="success">{success}</Alert>}
-        {error && <Alert severity="error">{error}</Alert>}
-        <form onSubmit={handleRegister}>
-          <TextField fullWidth margin="normal" label="First Name" name="firstName" onChange={handleChange} />
-          <TextField fullWidth margin="normal" label="Last Name" name="lastName" onChange={handleChange} />
-          <TextField fullWidth margin="normal" label="Email" name="email" type="email" onChange={handleChange} />
-          <TextField fullWidth margin="normal" label="Username" name="username" onChange={handleChange} />
-          <TextField fullWidth margin="normal" label="Password" name="password" type="password" onChange={handleChange} />
-          <FormControl component="fieldset" sx={{ mt: 2 }}>
-            <FormLabel component="legend">Vous êtes ?</FormLabel>
-            <RadioGroup row name="role" value={formData.role} onChange={handleRoleChange}>
-              <FormControlLabel value="enseignant" control={<Radio />} label="Enseignant" />
-              <FormControlLabel value="etudiant" control={<Radio />} label="Etudiant" />
-            </RadioGroup>
-          </FormControl>
-          <Button fullWidth variant="contained" type="submit" sx={{ mt: 2 }}>Register</Button>
-        </form>
-        <Button fullWidth variant="text" sx={{ mt: 1 }} onClick={() => navigate('/login')}>Sign In</Button>
-      </Box>
-    </Container>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        py: 4
+      }}
+    >
+      <Container maxWidth="sm">
+        <Paper
+          elevation={6}
+          sx={{
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            borderRadius: 2,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <SchoolIcon 
+            sx={{ 
+              fontSize: 60, 
+              color: 'primary.main',
+              mb: 2
+            }} 
+          />
+          
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              textAlign: 'center'
+            }}
+          >
+            Create Account
+          </Typography>
+          
+          <Typography 
+            variant="body1" 
+            color="text.secondary"
+            sx={{ mb: 4, textAlign: 'center' }}
+          >
+            Join our learning community
+          </Typography>
+
+          {success && (
+            <Alert 
+              severity="success" 
+              sx={{ 
+                width: '100%', 
+                mb: 2,
+                borderRadius: 1
+              }}
+            >
+              {success}
+            </Alert>
+          )}
+          
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                width: '100%', 
+                mb: 2,
+                borderRadius: 1
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          <Box 
+            component="form" 
+            onSubmit={handleRegister}
+            sx={{ width: '100%' }}
+          >
+            <TextField
+              fullWidth
+              margin="normal"
+              label="First Name"
+              name="firstName"
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BadgeIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Last Name"
+              name="lastName"
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BadgeIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Email"
+              name="email"
+              type="email"
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Username"
+              name="username"
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            <FormControl 
+              component="fieldset" 
+              sx={{ 
+                mt: 2,
+                width: '100%',
+                '& .MuiFormLabel-root': {
+                  color: 'text.primary',
+                  fontWeight: 500
+                }
+              }}
+            >
+              <FormLabel component="legend">Vous êtes ?</FormLabel>
+              <RadioGroup 
+                row 
+                name="role" 
+                value={formData.role} 
+                onChange={handleRoleChange}
+                sx={{ 
+                  justifyContent: 'center',
+                  gap: 2
+                }}
+              >
+                <FormControlLabel 
+                  value="enseignant" 
+                  control={<Radio />} 
+                  label="Enseignant"
+                  sx={{
+                    '& .MuiFormControlLabel-label': {
+                      color: 'text.primary'
+                    }
+                  }}
+                />
+                <FormControlLabel 
+                  value="etudiant" 
+                  control={<Radio />} 
+                  label="Etudiant"
+                  sx={{
+                    '& .MuiFormControlLabel-label': {
+                      color: 'text.primary'
+                    }
+                  }}
+                />
+              </RadioGroup>
+            </FormControl>
+
+            <Button
+              fullWidth
+              variant="contained"
+              type="submit"
+              size="large"
+              sx={{
+                mt: 3,
+                mb: 2,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
+                },
+              }}
+            >
+              Create Account
+            </Button>
+
+            <Button
+              fullWidth
+              variant="text"
+              onClick={() => navigate('/login')}
+              sx={{
+                textTransform: 'none',
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'transparent',
+                  color: 'primary.main',
+                },
+              }}
+            >
+              Already have an account? Sign In
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

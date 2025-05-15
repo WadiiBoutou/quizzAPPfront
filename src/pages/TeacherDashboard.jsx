@@ -2,14 +2,24 @@ import React, { useState, useEffect } from 'react';
 import {
   Container, Typography, Box, Tabs, Tab, Grid, Card, CardContent, CardActions,
   Button, IconButton, TextField, Divider, Dialog, DialogTitle, DialogContent,
-  DialogActions, FormControl, InputLabel, Select, MenuItem
+  DialogActions, FormControl, InputLabel, Select, MenuItem, Paper, useTheme,
+  useMediaQuery, Avatar, Chip, InputAdornment, Tooltip
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import ShareIcon from '@mui/icons-material/Share';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
+import {
+  Edit as EditIcon,
+  Share as ShareIcon,
+  BarChart as BarChartIcon,
+  Delete as DeleteIcon,
+  AddCircleOutline as AddCircleOutlineIcon,
+  SmartToy as SmartToyIcon,
+  School as SchoolIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+  Timer as TimerIcon,
+  QuestionAnswer as QuestionAnswerIcon,
+  CalendarToday as CalendarIcon,
+  Person as PersonIcon
+} from '@mui/icons-material';
 
 const createEmptyAnswer = () => ({ text: '', correct: false });
 
@@ -19,7 +29,7 @@ const createEmptyQuestion = () => ({
   answers: Array(4).fill(null).map(() => createEmptyAnswer())
 });
 
-const tabLabels = ['Tous', 'Actifs', 'Brouillons', 'Archivés'];
+const tabLabels = ['Tous'];
 
 // Move AIGenerationDialog outside of TeacherDashboard
 const AIGenerationDialog = ({ 
@@ -29,8 +39,28 @@ const AIGenerationDialog = ({
   setAiForm, 
   onGenerate 
 }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-    <DialogTitle>Générer un Quiz avec l'IA</DialogTitle>
+  <Dialog 
+    open={open} 
+    onClose={onClose} 
+    maxWidth="sm" 
+    fullWidth
+    PaperProps={{
+      sx: {
+        borderRadius: 3,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)'
+      }
+    }}
+  >
+    <DialogTitle sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 1,
+      color: 'primary.main',
+      fontWeight: 600
+    }}>
+      <SmartToyIcon /> Générer un Quiz avec l'IA
+    </DialogTitle>
     <DialogContent>
       <Box component="form" sx={{ mt: 2 }}>
         <TextField
@@ -41,27 +71,32 @@ const AIGenerationDialog = ({
           onChange={(e) => setAiForm({ ...aiForm, prompt: e.target.value })}
           placeholder="Ex: Mathématiques de base, Histoire de France..."
           required
+          sx={{ mb: 2 }}
         />
-        <TextField
-          label="Nombre de questions"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={aiForm.numberOfQuestions}
-          onChange={(e) => setAiForm({ ...aiForm, numberOfQuestions: parseInt(e.target.value) })}
-          InputProps={{ inputProps: { min: 1, max: 20 } }}
-          required
-        />
-        <TextField
-          label="Limite de temps (minutes)"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={aiForm.timeLimit}
-          onChange={(e) => setAiForm({ ...aiForm, timeLimit: parseInt(e.target.value) })}
-          InputProps={{ inputProps: { min: 1 } }}
-          required
-        />
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Nombre de questions"
+              type="number"
+              fullWidth
+              value={aiForm.numberOfQuestions}
+              onChange={(e) => setAiForm({ ...aiForm, numberOfQuestions: parseInt(e.target.value) })}
+              InputProps={{ inputProps: { min: 1, max: 20 } }}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Limite de temps (minutes)"
+              type="number"
+              fullWidth
+              value={aiForm.timeLimit}
+              onChange={(e) => setAiForm({ ...aiForm, timeLimit: parseInt(e.target.value) })}
+              InputProps={{ inputProps: { min: 1 } }}
+              required
+            />
+          </Grid>
+        </Grid>
         <FormControl fullWidth margin="normal">
           <InputLabel>Type de réponses</InputLabel>
           <Select
@@ -75,12 +110,19 @@ const AIGenerationDialog = ({
         </FormControl>
       </Box>
     </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose}>Annuler</Button>
+    <DialogActions sx={{ px: 3, pb: 3 }}>
+      <Button 
+        onClick={onClose}
+        variant="outlined"
+        sx={{ borderRadius: 2 }}
+      >
+        Annuler
+      </Button>
       <Button 
         onClick={onGenerate} 
-        variant="contained" 
+        variant="contained"
         disabled={!aiForm.prompt}
+        sx={{ borderRadius: 2 }}
       >
         Générer
       </Button>
@@ -93,6 +135,7 @@ export default function TeacherDashboard() {
   const [open, setOpen] = useState(false);
   const [openAIDialog, setOpenAIDialog] = useState(false);
   const [quizzes, setQuizzes] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [aiForm, setAiForm] = useState({
     prompt: '',
@@ -105,6 +148,21 @@ export default function TeacherDashboard() {
     description: '',
     timeLimit: 30,
     questions: [createEmptyQuestion()]
+  });
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Filter quizzes based on search query
+  const filteredQuizzes = quizzes.filter(quiz => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      quiz.title.toLowerCase().includes(searchLower) ||
+      quiz.description.toLowerCase().includes(searchLower) ||
+      (quiz.createdBy?.firstName?.toLowerCase().includes(searchLower)) ||
+      (quiz.createdBy?.lastName?.toLowerCase().includes(searchLower)) ||
+      (quiz.createdBy?.username?.toLowerCase().includes(searchLower))
+    );
   });
 
   useEffect(() => {
@@ -455,112 +513,273 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>Tableau de bord Enseignant</Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Créez et gérez vos quiz
-          </Typography>
-        </Box>
-        <Box>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<SmartToyIcon />}
-            sx={{ borderRadius: 2, fontWeight: 600, mr: 2 }}
-            onClick={() => setOpenAIDialog(true)}
-          >
-            Générer avec l'IA
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddCircleOutlineIcon />}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
-            onClick={() => setOpen(true)}
-          >
-            Nouveau Quiz
-          </Button>
-        </Box>
-      </Box>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
+        py: 4
+      }}
+    >
+      <Container maxWidth="lg">
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            mb: 4
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+            <Avatar
+              sx={{
+                bgcolor: 'primary.main',
+                width: 56,
+                height: 56,
+                mr: 2
+              }}
+            >
+              <SchoolIcon fontSize="large" />
+            </Avatar>
+            <Box flex={1}>
+              <Typography variant="h4" fontWeight={700} color="primary">
+                Tableau de bord Enseignant
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                Créez et gérez vos quiz
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<SmartToyIcon />}
+                onClick={() => setOpenAIDialog(true)}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600
+                }}
+              >
+                Générer avec l'IA
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddCircleOutlineIcon />}
+                onClick={() => setOpen(true)}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600
+                }}
+              >
+                Nouveau Quiz
+              </Button>
+            </Box>
+          </Box>
 
-      <Box sx={{ bgcolor: '#fafbfc', borderRadius: 2, p: 2, mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-          {tabLabels.map((label, idx) => (
-            <Tab key={label} label={label} sx={{ fontWeight: 600, minWidth: 120 }} />
-          ))}
-        </Tabs>
-        <Box display="flex" justifyContent="flex-end" mb={2}>
-          <TextField
-            size="small"
-            placeholder="Rechercher un quiz..."
-            sx={{ width: 300 }}
-            InputProps={{ sx: { borderRadius: 2 } }}
-          />
-        </Box>
-        <Grid container spacing={3}>
-          {quizzes.map((quiz) => (
-            <Grid item xs={12} md={4} key={quiz.id}>
-              <Card variant="outlined" sx={{ borderRadius: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" fontWeight={700}>{quiz.title}</Typography>
-                  <Typography variant="body2" color="text.secondary" mb={1}>
-                    {quiz.description}
+          <Box sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            mb: 3
+          }}>
+            <Tabs 
+              value={tab} 
+              onChange={(_, v) => setTab(v)}
+              variant={isMobile ? "fullWidth" : "standard"}
+              sx={{
+                '& .MuiTab-root': {
+                  fontWeight: 600,
+                  minWidth: 120,
+                  textTransform: 'none',
+                  fontSize: '1rem'
+                }
+              }}
+            >
+              {tabLabels.map((label) => (
+                <Tab key={label} label={label} />
+              ))}
+            </Tabs>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Rechercher un quiz..."
+              variant="outlined"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setSearchQuery('')}
+                      edge="end"
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+                sx: { borderRadius: 2 }
+              }}
+            />
+          </Box>
+
+          <Grid container spacing={3}>
+            {filteredQuizzes.length === 0 ? (
+              <Grid item xs={12}>
+                <Box 
+                  sx={{ 
+                    textAlign: 'center', 
+                    py: 4,
+                    color: 'text.secondary'
+                  }}
+                >
+                  <SearchIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Aucun quiz trouvé
                   </Typography>
-                  <Box display="flex" gap={3} mb={1}>
-                    <Typography variant="body2">
-                      <b>Questions</b><br />{quiz.questions.length}
-                    </Typography>
-                    <Typography variant="body2">
-                      <b>Score max</b><br />{quiz.questions.reduce((total, q) => total + (q.points || 0), 0)} points
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Créé le<br /><b>{new Date(quiz.dateOfCreation).toLocaleDateString()}</b>
+                  <Typography variant="body2">
+                    {searchQuery ? 
+                      `Aucun résultat pour "${searchQuery}"` : 
+                      'Commencez à créer votre premier quiz'}
+                  </Typography>
+                </Box>
+              </Grid>
+            ) : (
+              filteredQuizzes.map((quiz) => (
+                <Grid item xs={12} md={4} key={quiz.id}>
+                  <Card 
+                    elevation={2}
+                    sx={{ 
+                      borderRadius: 3,
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: 4
+                      }
+                    }}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Typography variant="h6" fontWeight={700} color="primary">
+                          {quiz.title}
+                        </Typography>
+                        <Chip
+                          label={quiz.status || 'Actif'}
+                          size="small"
+                          color={quiz.status === 'Archivé' ? 'default' : 'primary'}
+                          variant="outlined"
+                        />
+                      </Box>
+                      
+                      <Typography variant="body2" color="text.secondary" mb={2}>
+                        {quiz.description}
+                      </Typography>
+
+                      <Grid container spacing={2} mb={2}>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <QuestionAnswerIcon color="action" fontSize="small" />
+                            <Typography variant="body2">
+                              <b>{quiz.questions.length}</b> Questions
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TimerIcon color="action" fontSize="small" />
+                            <Typography variant="body2">
+                              <b>{quiz.timeLimit}</b> min
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarIcon color="action" fontSize="small" />
+                        <Typography variant="caption" color="text.secondary">
+                          Créé le : {new Date(quiz.dateOfCreation).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                    <Divider />
+                    <CardActions sx={{ p: 2, gap: 1 }}>
+                      <Tooltip title="Modifier">
+                        <IconButton 
+                          color="primary"
+                          onClick={() => handleEditQuiz(quiz)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Statistiques">
+                        <IconButton color="primary">
+                          <BarChartIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Partager">
+                        <IconButton color="primary">
+                          <ShareIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Box flex={1} />
+                      <Tooltip title="Supprimer">
+                        <IconButton 
+                          color="error"
+                          onClick={() => handleDeleteQuiz(quiz.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))
+            )}
+
+            <Grid item xs={12} md={4}>
+              <Card 
+                elevation={2}
+                sx={{ 
+                  borderRadius: 3,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 220,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4
+                  }
+                }}
+                onClick={() => setOpen(true)}
+              >
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <AddCircleOutlineIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+                  <Typography variant="h6" fontWeight={700} color="primary">
+                    Créer un nouveau quiz
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={2}>
+                    Commencez à créer un nouveau quiz pour vos étudiants
                   </Typography>
                 </CardContent>
-                <Divider />
-                <CardActions sx={{ justifyContent: 'flex-start', p: 2 }}>
-                  <Button 
-                    startIcon={<EditIcon />} 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => handleEditQuiz(quiz)}
-                  >
-                    Modifier
-                  </Button>
-                 
-                  <Button startIcon={<BarChartIcon />} variant="outlined" size="small">
-                    Stats
-                  </Button>
-                  <IconButton 
-                    color="error" 
-                    size="small"
-                    onClick={() => handleDeleteQuiz(quiz.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </CardActions>
               </Card>
             </Grid>
-          ))}
-          <Grid item xs={12} md={4}>
-            <Card variant="outlined" sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <AddCircleOutlineIcon sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
-                <Typography variant="h6" fontWeight={700}>Créer un nouveau quiz</Typography>
-                <Typography variant="body2" color="text.secondary" mb={2}>
-                  Commencez à créer un nouveau quiz pour vos étudiants
-                </Typography>
-                <Button variant="contained" color="primary" sx={{ borderRadius: 2 }} onClick={() => setOpen(true)}>
-                  Créer un Quiz
-                </Button>
-              </CardContent>
-            </Card>
           </Grid>
-        </Grid>
-      </Box>
+        </Paper>
+      </Container>
 
       <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -671,6 +890,6 @@ export default function TeacherDashboard() {
         setAiForm={setAiForm}
         onGenerate={handleAIGenerate}
       />
-    </Container>
+    </Box>
   );
 } 
