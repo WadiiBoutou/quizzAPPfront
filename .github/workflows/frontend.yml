@@ -16,13 +16,11 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies
-        working-directory: ./frontendJee
         run: npm ci
       - name: Run tests
-        working-directory: ./frontendJee
         run: npm test -- --coverage --ci
       - name: Upload frontend coverage
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: frontendJee/coverage/
+          path: coverage/
